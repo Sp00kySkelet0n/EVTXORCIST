@@ -1,0 +1,45 @@
+services:
+  evtx-uploader:
+    build: .
+    ports: 
+      - 8000:8000
+    volumes:
+      - ./app:/app
+      - ./uploads:/tmp/uploads
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  splunk:
+    image: splunk/splunk:latest
+    # We force the architecture due to splunk being missing on ARM.
+    platform: linux/amd64
+    container_name: splunk
+    environment:
+      - SPLUNK_GENERAL_TERMS=--accept-sgt-current-at-splunk-com
+      - SPLUNK_START_ARGS=--accept-license
+      - SPLUNK_PASSWORD=EvtxAdmin123!
+    ports:
+      - "8001:8000"
+      - "8088:8088"
+    volumes:
+      - ./splunk_config/evtxorcist_app:/opt/splunk/etc/apps/evtxorcist_app
+
+  splunk-mcp:
+    build: 
+      context: .
+      dockerfile: splunk_mcp_custom.Dockerfile
+    container_name: splunk-mcp
+    environment:
+      - SPLUNK_HOST=splunk
+      - SPLUNK_PORT=8089
+      - SPLUNK_USERNAME=admin
+      - SPLUNK_PASSWORD=EvtxAdmin123!
+      - VERIFY_SSL=false
+      - SERVER_MODE=sse
+    ports:
+      - "8080:8000" # Mapped to 8080 because evtxorcist uses 8000
+    depends_on:
+      - splunk
+    volumes:
+      - ./splunk_config/splunk_mcp.py:/app/splunk_mcp.py:ro
+

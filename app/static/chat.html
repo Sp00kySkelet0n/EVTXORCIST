@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat — EVTXorcist</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar" style="padding: 10px 24px;">
+        <div style="max-width: 900px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between;">
+            <a href="/" style="text-decoration: none;">
+                <span class="glow" style="font-size: 14px; font-weight: 700; letter-spacing: 2px;">EVTXORCIST</span>
+            </a>
+            <div style="display: flex; gap: 4px;">
+                <a href="/" class="nav-link">Upload</a>
+                <a href="/chat" class="nav-link active">Chat</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Chat Container -->
+    <main style="max-width: 900px; margin: 0 auto; padding: 16px; display: flex; flex-direction: column; height: calc(100vh - 50px);">
+
+        <!-- Chat Header -->
+        <div class="term-box" data-title="splunk agent" style="padding: 12px 16px; display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 12px; margin-top: 4px;">
+                <pre style="color: var(--term-cyan); font-size: 16px; line-height: 1; margin: 0;">⬡</pre>
+                <div>
+                    <span class="glow-cyan" style="font-size: 13px; font-weight: 600;">SPLUNK AGENT</span>
+                    <span style="font-size: 10px; color: var(--term-dim); margin-left: 8px;">// LLM + MCP</span>
+                </div>
+            </div>
+            <div>
+                <select id="model-select" class="term-input" style="font-size: 11px; padding: 6px 10px; min-width: 160px; cursor: pointer;">
+                    <option value="">loading models...</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Messages Area -->
+        <div id="chat-log" style="flex: 1; overflow-y: auto; border: 1px solid var(--term-border); border-top: none; padding: 16px; display: flex; flex-direction: column; gap: 8px; background: var(--term-bg); min-height: 0;">
+            <div style="text-align: center; padding: 8px 0;">
+                <span style="font-size: 10px; color: var(--term-dim); letter-spacing: 1px;">
+                    ── session started // query your ingested evtx events ──
+                </span>
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <div style="border: 1px solid var(--term-dim); border-top: none; background: var(--term-panel); padding: 12px;">
+            <form id="chat-form" onsubmit="submitChat(event)" style="display: flex; gap: 10px;">
+                <div style="flex: 1; display: flex; align-items: center; background: var(--term-bg); border: 1px solid var(--term-dim); padding: 0 12px;">
+                    <span style="color: var(--term-bright); font-size: 13px; font-weight: 700; margin-right: 8px;">$</span>
+                    <input type="text" id="chat-input"
+                        style="flex: 1; background: transparent; border: none; color: var(--term-fg); font-family: 'JetBrains Mono', monospace; font-size: 13px; padding: 10px 0; outline: none;"
+                        placeholder="ask about events, generate SPL, investigate..."
+                        autocomplete="off">
+                </div>
+                <button type="submit" id="send-btn" class="term-btn" style="padding: 10px 20px; font-size: 11px;">
+                    SEND ▸
+                </button>
+            </form>
+        </div>
+    </main>
+
+    <script>
+        let chatHistory = [];
+        let chatSocket = null;
+        let currentMsgId = null;
+        let currentFullResponse = '';
+
+        function setChatLocked(locked) {
+            document.getElementById('chat-input').disabled = locked;
+            document.getElementById('send-btn').disabled = locked;
+            if (locked) document.getElementById('send-btn').style.opacity = '0.3';
+            else document.getElementById('send-btn').style.opacity = '1';
+        }
+
+        function formatMarkdown(text) {
+            return text
+                .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre style="background: #0a0a0f; border: 1px solid var(--term-dim); padding: 10px; margin: 6px 0; font-size: 11px; color: var(--term-bright); overflow-x: auto;"><code>$2</code></pre>')
+                .replace(/`([^`]+)`/g, '<code style="background: #161b22; padding: 1px 6px; color: var(--term-amber); font-size: 12px;">$1</code>')
+                .replace(/\*\*(.+?)\*\*/g, '<strong style="color: #fff;">$1</strong>')
+                .replace(/\*(.+?)\*/g, '<em>$1</em>')
+                .replace(/\n/g, '<br>');
+        }
+
+        function scrollToBottom() {
+            const log = document.getElementById('chat-log');
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function connectChatSocket() {
+            if (chatSocket && chatSocket.readyState === WebSocket.OPEN) return;
+
+            const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            chatSocket = new WebSocket(`${proto}//${location.host}/ws/chat`);
+
+            chatSocket.onmessage = (event) => {
+                const raw = event.data;
+                let data = null;
+                try { data = JSON.parse(raw); } catch(e) {}
+
+                if (data && data.done) {
+                    if (data.error && currentMsgId) {
+                        document.getElementById(currentMsgId).innerHTML =
+                            `<span class="glow-red">ERR: ${data.error}</span>`;
+                    }
+                    if (currentFullResponse.trim()) {
+                        chatHistory.push({ role: 'assistant', content: currentFullResponse });
+                    }
+                    setChatLocked(false);
+                    currentFullResponse = '';
+                    currentMsgId = null;
+                } else {
+                    const text = data ? (data.content || raw) : raw;
+                    currentFullResponse += text;
+                    if (currentMsgId) {
+                        document.getElementById(currentMsgId).innerHTML = formatMarkdown(currentFullResponse);
+                        scrollToBottom();
+                    }
+                }
+            };
+
+            chatSocket.onclose = () => {
+                setChatLocked(false);
+                chatSocket = null;
+            };
+
+            chatSocket.onerror = (err) => {
+                console.error('WS error:', err);
+                if (currentMsgId) {
+                    document.getElementById(currentMsgId).innerHTML =
+                        '<span class="glow-red">ERR: connection failed</span>';
+                }
+                setChatLocked(false);
+                try { chatSocket.close(); } catch(e) {}
+                chatSocket = null;
+            };
+        }
+
+        async function submitChat(event) {
+            event.preventDefault();
+            const input = document.getElementById('chat-input');
+            const msg = input.value.trim();
+            if (!msg) return;
+
+            chatHistory.push({ role: 'user', content: msg });
+            appendChatMessage('user', msg);
+            input.value = '';
+
+            currentMsgId = 'msg-' + Date.now();
+            currentFullResponse = '';
+            appendChatMessage('assistant',
+                `<span style="color: var(--term-dim); font-size: 11px;"><span class="spinner">⟳</span> processing...</span>`,
+                currentMsgId
+            );
+            scrollToBottom();
+            setChatLocked(true);
+
+            connectChatSocket();
+
+            const waitForOpen = () => new Promise((resolve, reject) => {
+                if (chatSocket.readyState === WebSocket.OPEN) resolve();
+                else {
+                    chatSocket.addEventListener('open', resolve, { once: true });
+                    chatSocket.addEventListener('error', reject, { once: true });
+                }
+            });
+
+            try {
+                await waitForOpen();
+                chatSocket.send(JSON.stringify({
+                    messages: chatHistory,
+                    model: document.getElementById('model-select').value
+                }));
+            } catch(error) {
+                console.error("Chat error:", error);
+                document.getElementById(currentMsgId).innerHTML =
+                    '<span class="glow-red">ERR: connection failed</span>';
+                setChatLocked(false);
+            }
+        }
+
+        function appendChatMessage(role, content, id='') {
+            const chatLog = document.getElementById('chat-log');
+            const div = document.createElement('div');
+            div.style.cssText = 'display: flex; margin-bottom: 4px;';
+
+            const bubble = document.createElement('div');
+            bubble.className = role === 'user' ? 'chat-msg-user' : 'chat-msg-assistant';
+            bubble.style.cssText = `max-width: 85%; padding: 10px 14px; font-size: 13px; line-height: 1.5; ${role === 'user' ? 'margin-left: auto;' : ''}`;
+            if (id) bubble.id = id;
+
+            if (role === 'user') {
+                bubble.innerHTML = `<span style="color: var(--term-bright); font-size: 10px; font-weight: 600; display: block; margin-bottom: 4px;">USER ▸</span>${content}`;
+            } else {
+                bubble.innerHTML = `<span style="color: var(--term-cyan); font-size: 10px; font-weight: 600; display: block; margin-bottom: 4px;">AGENT ▸</span>${content}`;
+            }
+
+            div.appendChild(bubble);
+            chatLog.appendChild(div);
+            scrollToBottom();
+        }
+
+        async function loadModels() {
+            try {
+                const resp = await fetch('/api/models');
+                if (!resp.ok) return;
+                const data = await resp.json();
+                const sel = document.getElementById('model-select');
+                sel.innerHTML = data.models.map(m =>
+                    `<option value="${m.name}">${m.name}</option>`
+                ).join('');
+            } catch(e) { console.error('Failed to load models:', e); }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadModels);
+    </script>
+</body>
+</html>

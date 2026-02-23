@@ -1,0 +1,454 @@
+/* ════════════════════════════════════════════════════════════
+   EVTXorcist — Retro Terminal Theme
+   ════════════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
+
+:root {
+    --term-bg: #0a0a0f;
+    --term-fg: #c8ffc8;
+    --term-dim: #3a5a3a;
+    --term-bright: #00ff41;
+    --term-amber: #ffb000;
+    --term-cyan: #00d4ff;
+    --term-red: #ff3333;
+    --term-purple: #b464ff;
+    --term-border: #1a3a1a;
+    --term-panel: #0d1117;
+    --term-gutter: #161b22;
+    --scanline-opacity: 0.03;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+    background: var(--term-bg);
+    color: var(--term-fg);
+    margin: 0;
+    padding: 0;
+    -webkit-font-smoothing: none;
+    -moz-osx-font-smoothing: unset;
+}
+
+.hidden {
+    display: none !important;
+}
+
+
+/* ─── Scrollbar ─── */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--term-bg);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--term-dim);
+    border-radius: 0;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--term-bright);
+}
+
+/* ─── Terminal Box Drawing ─── */
+.term-box {
+    border: 1px solid var(--term-dim);
+    background: var(--term-panel);
+    position: relative;
+}
+
+.term-box::before {
+    content: attr(data-title);
+    position: absolute;
+    top: -1px;
+    left: 12px;
+    transform: translateY(-50%);
+    background: var(--term-panel);
+    padding: 0 8px;
+    color: var(--term-bright);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+/* ─── Navbar ─── */
+.navbar {
+    background: var(--term-panel);
+    border-bottom: 1px solid var(--term-dim);
+    font-size: 13px;
+}
+
+.navbar a {
+    text-decoration: none;
+    transition: color 0.15s;
+}
+
+.nav-link {
+    color: var(--term-dim);
+    padding: 6px 12px;
+}
+
+.nav-link:hover,
+.nav-link.active {
+    color: var(--term-bright);
+}
+
+.nav-link.active::before {
+    content: "► ";
+}
+
+/* ─── ASCII Logo ─── */
+.ascii-logo {
+    font-size: 10px;
+    line-height: 1.1;
+    color: var(--term-bright);
+    white-space: pre;
+    text-shadow: 0 0 10px rgba(0, 255, 65, 0.4);
+    letter-spacing: 0;
+}
+
+/* ─── Terminal Prompt ─── */
+.prompt::before {
+    content: "$ ";
+    color: var(--term-bright);
+    font-weight: 700;
+}
+
+.prompt-cursor::after {
+    content: "█";
+    animation: blink 1s step-end infinite;
+    color: var(--term-bright);
+}
+
+@keyframes blink {
+    50% {
+        opacity: 0;
+    }
+}
+
+.spinner {
+    display: inline-block;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* ─── Glow text ─── */
+.glow {
+    color: var(--term-bright);
+    text-shadow: 0 0 8px rgba(0, 255, 65, 0.5), 0 0 20px rgba(0, 255, 65, 0.2);
+}
+
+.glow-amber {
+    color: var(--term-amber);
+    text-shadow: 0 0 8px rgba(255, 176, 0, 0.5), 0 0 20px rgba(255, 176, 0, 0.2);
+}
+
+.glow-cyan {
+    color: var(--term-cyan);
+    text-shadow: 0 0 8px rgba(0, 212, 255, 0.5);
+}
+
+.glow-red {
+    color: var(--term-red);
+    text-shadow: 0 0 8px rgba(255, 51, 51, 0.5);
+}
+
+/* ─── Terminal Input ─── */
+.term-input {
+    background: var(--term-bg);
+    border: 1px solid var(--term-dim);
+    color: var(--term-fg);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    padding: 10px 14px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.term-input:focus {
+    border-color: var(--term-bright);
+    box-shadow: 0 0 0 1px rgba(0, 255, 65, 0.2);
+}
+
+.term-input::placeholder {
+    color: var(--term-dim);
+}
+
+/* ─── Terminal Button ─── */
+.term-btn {
+    background: transparent;
+    border: 1px solid var(--term-bright);
+    color: var(--term-bright);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 10px 20px;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    transition: all 0.15s;
+    position: relative;
+}
+
+.term-btn:hover {
+    background: rgba(0, 255, 65, 0.1);
+    box-shadow: 0 0 15px rgba(0, 255, 65, 0.2);
+}
+
+.term-btn:active {
+    background: rgba(0, 255, 65, 0.2);
+}
+
+.term-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.term-btn-amber {
+    border-color: var(--term-amber);
+    color: var(--term-amber);
+}
+
+.term-btn-amber:hover {
+    background: rgba(255, 176, 0, 0.1);
+    box-shadow: 0 0 15px rgba(255, 176, 0, 0.2);
+}
+
+/* ─── Terminal Badge ─── */
+.term-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    border: 1px solid;
+}
+
+.term-badge-green {
+    border-color: var(--term-bright);
+    color: var(--term-bright);
+}
+
+.term-badge-amber {
+    border-color: var(--term-amber);
+    color: var(--term-amber);
+}
+
+.term-badge-red {
+    border-color: var(--term-red);
+    color: var(--term-red);
+}
+
+.term-badge-cyan {
+    border-color: var(--term-cyan);
+    color: var(--term-cyan);
+}
+
+.term-badge-purple {
+    border-color: var(--term-purple);
+    color: var(--term-purple);
+}
+
+/* ─── Terminal Separator ─── */
+.term-sep {
+    border: none;
+    border-top: 1px dashed var(--term-dim);
+    margin: 16px 0;
+}
+
+/* ─── Radio Card (for destination) ─── */
+.radio-card {
+    border: 1px solid var(--term-dim);
+    background: var(--term-bg);
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+}
+
+.radio-card:hover {
+    border-color: var(--term-bright);
+}
+
+.radio-card.selected {
+    border-color: var(--term-bright);
+    background: rgba(0, 255, 65, 0.05);
+}
+
+.radio-card.selected-amber {
+    border-color: var(--term-amber);
+    background: rgba(255, 176, 0, 0.05);
+}
+
+/* ─── Dropzone ─── */
+.dropzone {
+    border: 1px dashed var(--term-dim);
+    background: var(--term-bg);
+    padding: 32px;
+    text-align: center;
+    transition: all 0.15s;
+    cursor: pointer;
+}
+
+.dropzone:hover,
+.dropzone.active {
+    border-color: var(--term-bright);
+    background: rgba(0, 255, 65, 0.03);
+}
+
+/* ─── Progress Bar (Terminal style) ─── */
+.term-progress {
+    background: var(--term-bg);
+    border: 1px solid var(--term-dim);
+    height: 16px;
+    position: relative;
+    font-size: 10px;
+    overflow: hidden;
+}
+
+.term-progress-fill {
+    height: 100%;
+    background: var(--term-bright);
+    transition: width 0.3s;
+    position: relative;
+}
+
+.term-progress-fill::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(-45deg,
+            transparent,
+            transparent 4px,
+            rgba(0, 0, 0, 0.2) 4px,
+            rgba(0, 0, 0, 0.2) 8px);
+}
+
+/* ─── File list ─── */
+.file-entry {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    border: 1px solid var(--term-border);
+    background: var(--term-bg);
+    margin-bottom: 4px;
+    font-size: 12px;
+}
+
+.file-entry:hover {
+    border-color: var(--term-dim);
+}
+
+/* ─── Animations ─── */
+@keyframes fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in {
+    animation: fade-in 0.2s ease-out;
+}
+
+@keyframes typewriter {
+    from {
+        width: 0;
+    }
+
+    to {
+        width: 100%;
+    }
+}
+
+/* ─── Chat specific ─── */
+.chat-msg-user {
+    background: rgba(0, 255, 65, 0.08);
+    border: 1px solid var(--term-dim);
+    border-left: 3px solid var(--term-bright);
+}
+
+.chat-msg-assistant {
+    background: var(--term-panel);
+    border: 1px solid var(--term-border);
+    border-left: 3px solid var(--term-cyan);
+}
+
+/* ─── Results specific ─── */
+.severity-critical {
+    color: var(--term-red);
+    border-color: var(--term-red);
+}
+
+.severity-high {
+    color: var(--term-amber);
+    border-color: var(--term-amber);
+}
+
+.severity-medium {
+    color: #e8a800;
+    border-color: #e8a800;
+}
+
+.severity-low {
+    color: var(--term-cyan);
+    border-color: var(--term-cyan);
+}
+
+.severity-info {
+    color: var(--term-dim);
+    border-color: var(--term-dim);
+}
+
+/* ─── Table ─── */
+.term-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.term-table th {
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--term-dim);
+    color: var(--term-bright);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.term-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--term-border);
+    color: var(--term-fg);
+}
+
+.term-table tr:hover td {
+    background: rgba(0, 255, 65, 0.03);
+}
+
+.term-table tr {
+    cursor: pointer;
+}

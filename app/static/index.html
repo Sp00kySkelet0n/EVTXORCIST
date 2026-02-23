@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EVTXorcist — Upload</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar" style="padding: 10px 24px;">
+        <div style="max-width: 900px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between;">
+            <a href="/" style="text-decoration: none;">
+                <span class="glow" style="font-size: 14px; font-weight: 700; letter-spacing: 2px;">EVTXORCIST</span>
+            </a>
+            <div style="display: flex; gap: 4px;">
+                <a href="/" class="nav-link active">Upload</a>
+                <a href="/chat" class="nav-link">Chat</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main style="max-width: 820px; margin: 0 auto; padding: 24px 16px;">
+
+        <!-- ASCII Header -->
+        <div style="text-align: center; margin-bottom: 32px; padding: 24px 0;">
+            <pre class="ascii-logo" style="display: inline-block; text-align: left;">
+╔═════════════════════════════════════════════════════════════════════════════════╗
+║ ███████╗██╗   ██╗████████╗██╗  ██╗ ██████╗ ██████╗  ██████╗██╗███████╗████████╗ ║
+║ ██╔════╝██║   ██║╚══██╔══╝╚██╗██╔╝██╔═══██╗██╔══██╗██╔════╝██║██╔════╝╚══██╔══╝ ║
+║ █████╗  ██║   ██║   ██║    ╚███╔╝ ██║   ██║██████╔╝██║     ██║███████╗   ██║    ║
+║ ██╔══╝  ╚██╗ ██╔╝   ██║    ██╔██╗ ██║   ██║██╔══██╗██║     ██║╚════██║   ██║    ║
+║ ███████╗ ╚████╔╝    ██║   ██╔╝ ██╗╚██████╔╝██║  ██║╚██████╗██║███████║   ██║    ║
+║ ╚══════╝  ╚═══╝     ╚═╝   ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═╝ ╚═════╝╚═╝╚══════╝   ╚═╝    ║
+╚═════════════════════════════════════════════════════════════════════════════════╝</pre>
+            <p style="color: var(--term-dim); font-size: 12px; margin-top: 12px; letter-spacing: 1px;">
+                // automated extraction &amp; forwarding of windows event logs
+            </p>
+        </div>
+
+        <!-- Step 1: Case Name -->
+        <div class="term-box" data-title="01 // case" style="padding: 20px; margin-bottom: 20px;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px; margin-top: 4px;">
+                <span class="glow-amber" style="font-size: 12px; font-weight: 600;">CASE IDENTIFIER</span>
+            </div>
+            <input id="case-name" type="text" placeholder="DC01-Compromise-2025, IR-Case-042..."
+                class="term-input" style="width: 100%; font-size: 14px;" />
+            <p style="color: var(--term-dim); font-size: 11px; margin-top: 8px;">
+                └─ used as splunk source field &amp; results folder name
+            </p>
+        </div>
+
+        <!-- Step 2: File Dropzone -->
+        <div class="term-box" data-title="02 // source" style="padding: 20px; margin-bottom: 20px;">
+            <div id="dropzone-container" class="dropzone"
+                ondragover="event.preventDefault(); this.classList.add('active')"
+                ondragleave="this.classList.remove('active')"
+                ondrop="handleDrop(event); this.classList.remove('active')">
+
+                <div id="dropzone-content">
+                    <pre style="color: var(--term-dim); font-size: 11px; line-height: 1.4; margin-bottom: 12px;">
+    ┌──────────────────────────────┐
+    │                              │
+    │   ↑  DROP .evtx FILES HERE   │
+    │                              │
+    └──────────────────────────────┘</pre>
+                    <div style="display: flex; gap: 12px; justify-content: center; margin-top: 8px;">
+                        <button type="button" onclick="document.getElementById('file-input').click()"
+                            class="term-btn" style="font-size: 11px; padding: 8px 16px;">
+                            [SELECT FILES]
+                        </button>
+                        <button type="button" onclick="document.getElementById('folder-input').click()"
+                            class="term-btn term-btn-amber" style="font-size: 11px; padding: 8px 16px;">
+                            [SELECT FOLDER]
+                        </button>
+                    </div>
+                </div>
+
+                <div id="file-list" style="text-align: left; width: 100%; margin-top: 8px;"></div>
+
+                <input id="file-input" type="file" multiple style="display:none" accept=".evtx" onchange="handleFileSelect(event)" />
+                <input id="folder-input" type="file" multiple style="display:none" webkitdirectory onchange="handleFileSelect(event)" />
+            </div>
+        </div>
+
+        <!-- Step 3: Destination -->
+        <div class="term-box" data-title="03 // target" style="padding: 20px; margin-bottom: 20px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; margin-top: 4px;">
+                <label id="label-splunk" class="radio-card selected-amber" onclick="document.getElementById('dest-splunk').checked=true; toggleDestination();">
+                    <input type="radio" id="dest-splunk" name="destination" value="splunk" style="display:none" checked>
+                    <span class="glow-amber" style="font-size: 20px;">◈</span>
+                    <span style="font-size: 12px; font-weight: 600; margin-top: 6px; color: var(--term-fg);">SPLUNK (BUILT-IN)</span>
+                </label>
+                <label id="label-elastic" class="radio-card" onclick="document.getElementById('dest-elastic').checked=true; toggleDestination();">
+                    <input type="radio" id="dest-elastic" name="destination" value="elasticsearch" style="display:none">
+                    <span class="glow-cyan" style="font-size: 20px;">⊡</span>
+                    <span style="font-size: 12px; font-weight: 600; margin-top: 6px; color: var(--term-fg);">ELASTICSEARCH</span>
+                </label>
+            </div>
+
+            <!-- Splunk: built-in, no config needed -->
+            <div id="splunk-fields" style="border-top: 1px dashed var(--term-dim); padding-top: 16px;">
+                <div style="background: rgba(255,176,0,0.05); border: 1px solid rgba(255,176,0,0.2); padding: 12px;">
+                    <span class="glow-amber" style="font-size: 11px; font-weight: 600;">▸ INTEGRATED SPLUNK SERVER</span>
+                    <span id="splunk-health-badge" class="term-badge" style="margin-left: 8px; font-size: 9px;">CHECKING...</span>
+                    <p style="color: var(--term-dim); font-size: 11px; margin-top: 6px;">
+                        events forwarded to built-in splunk instance — no configuration needed
+                    </p>
+                    <label style="display: flex; align-items: center; gap: 6px; margin-top: 8px; cursor: pointer;">
+                        <input type="checkbox" id="advanced-splunk-toggle"
+                            onchange="document.getElementById('advanced-splunk-fields').classList.toggle('hidden', !this.checked)"
+                            style="accent-color: var(--term-amber);">
+                        <span style="font-size: 11px; color: var(--term-dim);">use external splunk server instead</span>
+                    </label>
+                </div>
+
+                <div id="advanced-splunk-fields" class="hidden" style="margin-top: 12px;">
+                    <div style="margin-bottom: 12px;">
+                        <label style="display: block; font-size: 11px; color: var(--term-dim); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px;">hec endpoint</label>
+                        <input id="splunk-url" type="url" placeholder="https://splunk:8088/services/collector/event" class="term-input" style="width: 100%;" />
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div>
+                            <label style="display: block; font-size: 11px; color: var(--term-dim); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px;">hec token</label>
+                            <input id="splunk-token" type="password" placeholder="••••••••" class="term-input" style="width: 100%;" />
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 11px; color: var(--term-dim); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px;">index</label>
+                            <input id="splunk-index" type="text" placeholder="main" class="term-input" style="width: 100%;" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Elasticsearch Fields (hidden by default) -->
+            <div id="elastic-fields" class="hidden" style="border-top: 1px dashed var(--term-dim); padding-top: 16px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                    <div>
+                        <label style="display: block; font-size: 11px; color: var(--term-dim); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px;">host</label>
+                        <input id="es-host" type="text" placeholder="elasticsearch" class="term-input" style="width: 100%;" />
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 11px; color: var(--term-dim); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px;">port</label>
+                        <input id="es-port" type="number" placeholder="9200" class="term-input" style="width: 100%;" />
+                    </div>
+                </div>
+                <div>
+                    <label style="display: block; font-size: 11px; color: var(--term-dim); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px;">index</label>
+                    <input id="es-index" type="text" placeholder="evtx_index" class="term-input" style="width: 100%;" />
+                </div>
+            </div>
+        </div>
+
+        <!-- Execute -->
+        <div style="margin-bottom: 32px;">
+            <button id="upload-btn" onclick="uploadFiles()" class="term-btn" style="width: 100%; padding: 14px; font-size: 14px; letter-spacing: 3px;">
+                ⚡ FORWARD EVENTS
+            </button>
+
+            <div id="progress-container" class="hidden" style="margin-top: 16px;">
+                <div class="term-progress">
+                    <div id="progress-bar" class="term-progress-fill" style="width: 0%;"></div>
+                </div>
+                <p id="progress-text" style="font-size: 10px; color: var(--term-dim); margin-top: 4px; text-align: right;"></p>
+            </div>
+
+            <div id="status" style="margin-top: 16px; text-align: center; font-size: 12px;"></div>
+        </div>
+
+        <!-- Footer -->
+        <div style="text-align: center; padding: 16px 0; border-top: 1px dashed var(--term-border);">
+            <span style="font-size: 10px; color: var(--term-dim); letter-spacing: 1px;">
+                EVTXORCIST // EVTX → JSON → CHAINSAW → SPLUNK/ELASTIC
+            </span>
+        </div>
+    </main>
+
+    <script>
+        let selectedFiles = [];
+
+        function handleFileSelect(event) {
+            const newFiles = Array.from(event.target.files).filter(f => f.name.toLowerCase().endsWith('.evtx'));
+            const existingNames = new Set(selectedFiles.map(f => f.name));
+            const uniqueNewFiles = newFiles.filter(f => !existingNames.has(f.name));
+            selectedFiles = selectedFiles.concat(uniqueNewFiles);
+            updateFileList();
+        }
+
+        async function readEntries(entry) {
+            if (entry.isFile) {
+                return new Promise(resolve => entry.file(f => {
+                    if (f.name.toLowerCase().endsWith('.evtx')) resolve([f]);
+                    else resolve([]);
+                }));
+            } else if (entry.isDirectory) {
+                const reader = entry.createReader();
+                const entries = await new Promise(resolve => reader.readEntries(resolve));
+                const files = [];
+                for (const e of entries) files.push(...await readEntries(e));
+                return files;
+            }
+            return [];
+        }
+
+        async function handleDrop(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            const items = event.dataTransfer.items;
+            const allFiles = [];
+            for (const item of items) {
+                const entry = item.webkitGetAsEntry ? item.webkitGetAsEntry() : null;
+                if (entry) allFiles.push(...await readEntries(entry));
+                else {
+                    const f = item.getAsFile();
+                    if (f && f.name.toLowerCase().endsWith('.evtx')) allFiles.push(f);
+                }
+            }
+            const existingNames = new Set(selectedFiles.map(f => f.name));
+            selectedFiles = selectedFiles.concat(allFiles.filter(f => !existingNames.has(f.name)));
+            updateFileList();
+        }
+
+        function removeFile(name) {
+            selectedFiles = selectedFiles.filter(f => f.name !== name);
+            updateFileList();
+        }
+
+        function formatSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1048576) return (bytes/1024).toFixed(1) + ' KB';
+            return (bytes/1048576).toFixed(1) + ' MB';
+        }
+
+        function updateFileList() {
+            const fileList = document.getElementById("file-list");
+            const dropContent = document.getElementById("dropzone-content");
+
+            if (selectedFiles.length === 0) {
+                fileList.innerHTML = "";
+                dropContent.style.display = "";
+                return;
+            }
+
+            dropContent.style.display = "none";
+            const totalSize = selectedFiles.reduce((a, f) => a + f.size, 0);
+
+            fileList.innerHTML =
+                `<div style="margin-bottom: 8px; font-size: 11px; color: var(--term-bright);">
+                    ── ${selectedFiles.length} file(s) selected // ${formatSize(totalSize)} ──
+                </div>
+                <div style="max-height: 200px; overflow-y: auto;">` +
+                selectedFiles.map(f => `
+                    <div class="file-entry fade-in">
+                        <span style="color: var(--term-fg);">
+                            <span style="color: var(--term-dim);">├─</span> ${f.name}
+                            <span style="color: var(--term-dim); margin-left: 8px;">${formatSize(f.size)}</span>
+                        </span>
+                        <button onclick="removeFile('${f.name}')" style="background: none; border: none; color: var(--term-red); cursor: pointer; font-family: monospace; font-size: 14px;" title="Remove">✕</button>
+                    </div>
+                `).join("") + `</div>`;
+        }
+
+        function toggleDestination() {
+            const isSplunk = document.getElementById("dest-splunk").checked;
+            document.getElementById("elastic-fields").classList.toggle("hidden", isSplunk);
+            document.getElementById("splunk-fields").classList.toggle("hidden", !isSplunk);
+
+            const esLabel = document.getElementById("label-elastic");
+            const spLabel = document.getElementById("label-splunk");
+
+            if (isSplunk) {
+                spLabel.classList.add("selected-amber");
+                esLabel.classList.remove("selected");
+            } else {
+                esLabel.classList.add("selected");
+                spLabel.classList.remove("selected-amber");
+            }
+        }
+
+        async function uploadFiles() {
+            const statusEl = document.getElementById("status");
+            const progressContainer = document.getElementById("progress-container");
+            const progressBar = document.getElementById("progress-bar");
+            const uploadBtn = document.getElementById("upload-btn");
+
+            if (selectedFiles.length === 0) {
+                statusEl.innerHTML = `<span class="glow-red">ERR: no .evtx files selected</span>`;
+                return;
+            }
+
+            const formData = new FormData();
+            for (let file of selectedFiles) formData.append("files", file);
+
+            const isSplunk = document.getElementById("dest-splunk").checked;
+            formData.append("case_name", document.getElementById("case-name")?.value || "Untitled Case");
+            formData.append("destination", isSplunk ? "splunk" : "elasticsearch");
+
+            if (isSplunk) {
+                formData.append("splunk_url", document.getElementById("splunk-url")?.value || "");
+                formData.append("splunk_token", document.getElementById("splunk-token")?.value || "");
+                formData.append("index", document.getElementById("splunk-index")?.value || "main");
+            } else {
+                formData.append("es_host", document.getElementById("es-host")?.value || "elasticsearch");
+                formData.append("es_port", document.getElementById("es-port")?.value || "9200");
+                formData.append("index", document.getElementById("es-index")?.value || "evtx_index");
+            }
+
+            uploadBtn.disabled = true;
+            uploadBtn.textContent = "⏳ PROCESSING...";
+            progressContainer.classList.remove("hidden");
+
+            const xhr = new XMLHttpRequest();
+            xhr.open("POST", "/upload");
+
+            xhr.upload.addEventListener("progress", (event) => {
+                if (event.lengthComputable) {
+                    const pct = Math.round((event.loaded / event.total) * 100);
+                    progressBar.style.width = pct + "%";
+                    document.getElementById("progress-text").textContent = `${pct}% uploaded`;
+                }
+            });
+
+            const resetBtn = () => {
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = "⚡ FORWARD EVENTS";
+            };
+
+            xhr.onload = () => {
+                resetBtn();
+                if (xhr.status === 200) {
+                    const result = JSON.parse(xhr.responseText);
+                    if (result.session_id) {
+                        window.location.href = `/results/${result.session_id}`;
+                    } else {
+                        statusEl.innerHTML = `<span class="glow">✓ processed ${result.uploaded.length} file(s)</span>`;
+                        selectedFiles = [];
+                        updateFileList();
+                    }
+                } else {
+                    statusEl.innerHTML = `<span class="glow-red">ERR ${xhr.status}: processing failed</span>`;
+                }
+                progressContainer.classList.add("hidden");
+            };
+
+            xhr.onerror = () => {
+                resetBtn();
+                statusEl.innerHTML = `<span class="glow-red">ERR: network failure</span>`;
+                progressContainer.classList.add("hidden");
+            };
+
+            xhr.send(formData);
+        }
+
+        // Splunk health check
+        async function checkSplunkStatus() {
+            const badge = document.getElementById("splunk-health-badge");
+            if (!badge) return;
+            try {
+                const resp = await fetch("/health/splunk");
+                const data = await resp.json();
+                if (data.status === "ok") {
+                    badge.textContent = "● ONLINE";
+                    badge.className = "term-badge term-badge-green";
+                } else {
+                    badge.textContent = "● OFFLINE";
+                    badge.className = "term-badge term-badge-red";
+                }
+            } catch(e) {
+                badge.textContent = "● OFFLINE";
+                badge.className = "term-badge term-badge-red";
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            checkSplunkStatus();
+            setInterval(checkSplunkStatus, 30000);
+        });
+    </script>
+</body>
+</html>
