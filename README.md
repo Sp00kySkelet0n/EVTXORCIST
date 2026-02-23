@@ -1,7 +1,7 @@
 # EVTXorcist
 
 <p align="center">
-  <img src="./evtxorcist.jpg" alt="EVTXorcist Logo" width="100%"/>
+  <img src="./evtxorcist.jpg" alt="EVTXorcist Logo" width="500"/>
 </p>
 
 ## Overview
