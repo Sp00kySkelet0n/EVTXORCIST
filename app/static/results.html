@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Results — EVTXorcist</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
     <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
@@ -52,7 +53,10 @@
                 <a id="download-chainsaw" href="#" download class="term-btn term-btn-amber" style="font-size: 10px; padding: 8px 14px; text-decoration: none;">
                     ↓ CHAINSAW JSON
                 </a>
-                <a href="/chat" class="term-btn" style="font-size: 10px; padding: 8px 14px; text-decoration: none; margin-left: auto; border-color: var(--term-cyan); color: var(--term-cyan);">
+                <button onclick="clearResultsCache()" class="term-btn" style="font-size: 10px; padding: 8px 14px; margin-left: auto; border-color: var(--term-amber); color: var(--term-amber);">
+                    ♺ CLEAR CACHE
+                </button>
+                <a href="/chat" class="term-btn" style="font-size: 10px; padding: 8px 14px; text-decoration: none; border-color: var(--term-cyan); color: var(--term-cyan);">
                     ⬡ ASK AI AGENT
                 </a>
             </div>
@@ -174,15 +178,39 @@
             </div>`;
         }
 
+        function clearResultsCache() {
+            const path = window.location.pathname;
+            const sessionId = path.split('/results/')[1];
+            if (sessionId) {
+                localStorage.removeItem(`evtxorcist_results_${sessionId}`);
+                // Refresh the page to attempt a fresh fetch
+                window.location.reload();
+            }
+        }
+
         async function loadResults() {
             const path = window.location.pathname;
             const sessionId = path.split('/results/')[1];
             if (!sessionId) { showError(); return; }
 
+            const cacheKey = `evtxorcist_results_${sessionId}`;
+            const cached = localStorage.getItem(cacheKey);
+            if (cached) {
+                try {
+                    const data = JSON.parse(cached);
+                    renderResults(data, sessionId);
+                    return;
+                } catch(e) { console.error('Cache parse failed', e); }
+            }
+
             try {
                 const resp = await fetch(`/api/results/${sessionId}`);
                 if (!resp.ok) { showError(); return; }
                 const data = await resp.json();
+                
+                // Cache the successful fetch
+                try { localStorage.setItem(cacheKey, JSON.stringify(data)); } catch(e) { console.warn('Cache full', e); }
+                
                 renderResults(data, sessionId);
             } catch (e) {
                 console.error(e);

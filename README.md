@@ -1,64 +1,117 @@
-# EVTXorcist
+<div align="center">
+  <img src="img/evtxorcist.jpg" alt="EVTXorcist Logo" width="400"/>
 
-<p align="center">
-  <img src="./evtxorcist.jpg" alt="EVTXorcist Logo" width="500"/>
-</p>
+  # EVTXorcist 👻
+  **Automated DFIR & AI-Powered Threat Hunting Platform**
 
-## Overview
+  
+[![Sp00kySkelet0n](https://img.shields.io/badge/Sp00kySkelet0n-GitHub-181717?style=for-the-badge&logo=github)](https://github.com/Sp00kySkelet0n)
 
-<p align="center">
-  <img src="./screenshot.png" alt="EVTXorcist Interface Overview" width="100%"/>
-</p>
+</div>
 
-**EVTXorcist** is an automated Windows Event Log (EVTX) analysis platform designed for incident responders, threat hunters, and security analysts. It bridges the gap between raw event logs, high-speed Sigma rule matching, and AI-powered analysis in a unified, retro-terminal interface.
 
-Upload your EVTX files and EVTXorcist will seamlessly orchestrate:
-1. **High-Speed Parsing**: Analyzing logs using [Chainsaw](https://github.com/WithSecureLabs/chainsaw) to identify malicious activity via Sigma rules.
-2. **Automated Ingestion**: Indexing both the raw EVTX data and the enriched Chainsaw detections into a tailored, built-in Splunk instance.
-3. **AI-Powered Investigation**: Providing a natural-language AI Analyst (powered by local LLMs via Ollama) equipped with Splunk search capabilities to help you intuitively investigate the data.
+## ⚡ What is EVTXorcist?
+
+**EVTXorcist** is a self-contained, automated Windows Event Log (EVTX) analysis platform designed for incident responders, threat hunters, and security analysts. 
+
+It bridges the gap between raw event logs, high-speed Sigma rule matching, and AI-powered investigation through the Model Context Protocol (MCP) in a unified, retro-terminal interface.
+
+<div align="center">
+  <img src="img/screenshot.png" alt="EVTXorcist Interface Overview" width="800" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.5);"/>
+</div>
 
 ---
 
 ## Key Features
 
-- **Retro Terminal UI**: A responsive, hacker-themed web interface offering an immersive environment for uploading files and conversing with the AI.
-- **Automated Processing**: No manual log parsing or conversion required. EVTXorcist handles EVTX extraction and Sigma matching completely hands-off.
-- **Built-in Splunk Environment**: Includes a pre-configured Splunk container specifically tuned for ingesting JSON-formatted EVTX and Chainsaw results automatically.
-- **AI Investigation Agent**: Chat with an LLM directly connected to your Splunk data via the Model Context Protocol (MCP). The AI acts autonomously to write queries, analyze results, and investigate potential compromises.
-- **Multi-Round Tool Calling**: The AI agent operates in an agentic loop. It iteratively refines its searches, checks available data types, and pivots based on intermediate findings to ensure comprehensive answers.
+*   🎯 **Zero-Touch Processing** — Drag and drop a folder or ZIP of EVTX files. EVTXorcist handles extraction, conversion, and Sigma matching entirely hands-off.
+*   ⚡ **High-Speed Parsing** — Leverages [Chainsaw](https://github.com/WithSecureLabs/chainsaw) (Rust) for lightning-fast analysis of raw logs against the Sigma rule repository.
+*   💾 **Built-in Splunk Analytics** — Includes a pre-configured, Dockerized Splunk instance tailored for ingesting JSON-formatted EVTX and Chainsaw alerts.
+*   🤖 **AI Investigation Agent** — Chat natively with local LLMs (via Ollama) directly connected to your Splunk data.
+*   🔌 **Model Context Protocol (MCP)** — Exposes a fully-functional MCP Server so your AI can autonomously write SPL queries, analyze results, and iteratively hunt for context.
 
 ---
 
-## Architecture
+## The Workflow
 
-| Component | Technology | Description |
-|-----------|------------|-------------|
-| **Backend** | FastAPI (Python) | Handles uploads, orchestrates Chainsaw, and manages the WebSocket chat interface. |
-| **Frontend** | HTML / CSS / JS | Pure, dependency-free terminal aesthetic. |
-| **Log Engine** | Chainsaw (Rust) | Provides high-speed Sigma matching and EVTX-to-JSON conversion. |
-| **Data Store**| Splunk Enterprise | Docker-containerized Splunk for robust search and indexing. |
-| **AI Brain** | Ollama + MCP | Local LLMs empowered with a custom Splunk Model Context Protocol server for executing searches. |
+### 1. 🔍 Automated Sigma Hunting
+Instantly see Critical, High, and Medium severity matches mapped securely to the MITRE ATT&CK framework moments after upload thanks to Chainsaw.
+
+<div align="center">
+  <img src="img/chainsaw_results.png" alt="Chainsaw Results Dashboard" width="700" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.3);"/>
+</div>
+
+### 2. 💬 Agentic Chat Investigation
+Switch to the Chat interface to interrogate your data. Ask natural language questions, and the AI will formulate Splunk queries, execute them via MCP, and summarize the findings.
+
+<div align="center">
+  <img src="img/chat.png" alt="Agentic Chat Interface" width="700" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.3);"/>
+</div>
+
+### 3. 🧩 Universal MCP Compatibility
+Don't want to use the web UI? No problem. The included `mcp-cli.sh` wrapper allows you to mount the Splunk MCP server into external AI tools like **Cursor**, **Gemini CLI**, or **Claude Desktop**.
+
+<div align="center">
+  <img src="img/mcp.png" alt="MCP Server Integration" width="700" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.3);"/>
+</div>
 
 ---
+
+## 🛠️ Architecture Overview
+
+| Component | Technology | Role |
+| :--- | :--- | :--- |
+| **Backend API** | [FastAPI (Python)](https://fastapi.tiangolo.com/) | Upload orchestration, Chainsaw subprocess management, and WebSocket loop. |
+| **Frontend UI** | HTML / CSS / JS | Pure, terminal-themed interface utilizing `localStorage` caching. |
+| **Data Store** | [Splunk](https://www.splunk.com/) | Containerized indexer for robust search capabilities. |
+| **AI Brain** | [Ollama](https://ollama.com/) + [MCP](https://modelcontextprotocol.io/) | Local LLMs empowered with a custom Model Context Protocol server for executing autonomous Splunk searches. |
+
 
 ## Quick Start
 
-1. **Deploy**: Start the application stack using Docker Compose.
-   ```bash
-   docker-compose up -d --build
-   ```
-2. **Access**: Navigate to the web UI.
-3. **Upload**: Drag and drop a folder or ZIP containing EVTX files into the terminal interface.
-4. **Investigate**: Once processing is complete, switch to the Chat interface and ask your AI analyst questions about the data.
-   - *Example: "What commands were executed by the Administrator?"*
-   - *Example: "Are there any PowerShell execution alerts in Chainsaw?"*
+### 1. Deploy the Environment
+Ensure Docker and Docker Compose are installed. Spin up the application stack:
+```bash
+docker-compose up -d --build
+```
+*Note: The Splunk container may take a minute or two to fully initialize on the first run.*
+
+### 2. Access the Platform
+Navigate to `http://localhost:8000` in your web browser.
+
+### 3. Upload & Investigate
+* Drag and drop a folder or `.zip` file containing Windows `.evtx` files into the terminal interface.
+* Review the extracted Chainsaw Alerts dashboard.
+* Click **⬡ ASK AI AGENT** to start an automated hunt!
+  * *Example: "What commands were executed by the Administrator?"*
+  * *Example: "Are there any PowerShell execution alerts in Chainsaw?"*
 
 ---
 
-## Splunk Data Structure
+## 🔌 External MCP Integration
 
-When questioning the data, EVTXorcist automatically stores it under `index=main` with two primary sourcetypes to optimize search performance:
+You can easily plug the built-in Splunk MCP server into external tools like Cursor, Claude Desktop, or the Gemini CLI using the included wrapper script.
 
-- **`sourcetype=chainsaw`**: Contains pre-processed Sigma detections (fields: `name`, `level`, `tags`, etc.). The AI prioritizes searching this for rapid threat identification.
-- **`sourcetype=_json`**: Contains the complete, raw Windows Event Log data (fields: `Event.System.EventID`, `Event.System.Computer`, `Event.EventData.*`, etc.). Used for deep-dive hunts when alerts are not present. 
-- *Upload names are stored in the `source` field, representing individual "Cases".*
+Simply configure your MCP client to execute:
+```json
+{
+  "mcpServers": {
+    "evtxorcist": {
+      "command": "bash",
+      "args": ["/absolute/path/to/EVTXorcist/mcp-cli.sh"]
+    }
+  }
+}
+```
+
+*Note: The EVTXorcist docker-compose stack must be running to provide the backend Splunk instance.*
+
+
+## Understanding the Splunk Data Structure
+
+When questioning the data, EVTXorcist automatically stores it under `index=main` with two primary sourcetypes to optimize search performance for the AI:
+
+*   🪚 **`sourcetype=chainsaw`**: Contains pre-processed Sigma detections (fields: `name`, `level`, `tags`, etc.). The AI prioritizes searching this for rapid threat identification.
+*   📜 **`sourcetype=_json`**: Contains the complete, raw Windows Event Log data (fields: `Event.System.EventID`, `Event.System.Computer`, `Event.EventData.*`, etc.). Used for deep-dive hunts when alerts are not present. 
+
+*Upload names are stored in the `source` field, representing individual "Cases".*

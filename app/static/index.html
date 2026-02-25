@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EVTXorcist — Upload</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
     <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
@@ -15,6 +16,7 @@
             </a>
             <div style="display: flex; gap: 4px;">
                 <a href="/" class="nav-link active">Upload</a>
+                <a href="#" id="nav-results" class="nav-link" style="display: none;">Results</a>
                 <a href="/chat" class="nav-link">Chat</a>
             </div>
         </div>
@@ -376,6 +378,24 @@
             checkSplunkStatus();
             setInterval(checkSplunkStatus, 30000);
         });
+    </script>
+    <script>
+        function checkRecentResults() {
+            // Find any cached results in localStorage
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.startsWith('evtxorcist_results_')) {
+                    const sessionId = key.replace('evtxorcist_results_', '');
+                    const navLink = document.getElementById('nav-results');
+                    if (navLink) {
+                        navLink.href = `/results/${sessionId}`;
+                        navLink.style.display = 'block';
+                    }
+                    break;
+                }
+            }
+        }
+        document.addEventListener('DOMContentLoaded', checkRecentResults);
     </script>
 </body>
 </html>
