@@ -1,7 +1,7 @@
 <div align="center">
   <img src="img/evtxorcist.jpg" alt="EVTXorcist Logo" width="400"/>
 
-  # EVTXorcist 👻
+  # EVTXorcist
   **Automated DFIR & AI-Powered Threat Hunting Platform**
 
   
