@@ -86,11 +86,22 @@
             <p style="font-size: 12px; color: var(--term-dim); margin-bottom: 16px;">
                 You can expose the underlying Splunk MCP server to external tools like Cursor, Gemini CLI, or Claude Desktop. Use the configuration format below.
             </p>
-            <pre style="background: #0a0a0f; border: 1px solid var(--term-dim); padding: 12px; font-size: 11px; color: var(--term-bright); overflow-x: auto; margin-bottom: 20px;"><code>{
+    <pre style="background: #0a0a0f; border: 1px solid var(--term-dim); padding: 12px; font-size: 11px; color: var(--term-bright); overflow-x: auto; margin-bottom: 20px;"><code>{
   "mcpServers": {
     "evtxorcist": {
-      "command": "bash",
-      "args": ["<span style="color: var(--term-amber);">/absolute/path/to/EVTXorcist</span>/mcp-cli.sh"]
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm",
+        "--network", "evtxorcist_default",
+        "-e", "SPLUNK_HOST=splunk",
+        "-e", "SPLUNK_PORT=8089",
+        "-e", "SPLUNK_USERNAME=admin",
+        "-e", "SPLUNK_PASSWORD=EvtxAdmin123!",
+        "-e", "VERIFY_SSL=false",
+        "-v", "<span style="color: var(--term-amber);">/absolute/path/to/EVTXorcist</span>/splunk_config/splunk_mcp.py:/app/splunk_mcp.py:ro",
+        "evtxorcist-splunk-mcp",
+        "python3", "/app/splunk_mcp.py", "stdio"
+      ]
     }
   }
 }</code></pre>

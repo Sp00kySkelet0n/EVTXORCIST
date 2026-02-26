@@ -294,6 +294,10 @@
             const formData = new FormData();
             for (let file of selectedFiles) formData.append("files", file);
 
+            // Generate a unique polling ID
+            const clientId = crypto.randomUUID();
+            formData.append("client_id", clientId);
+
             const isSplunk = document.getElementById("dest-splunk").checked;
             formData.append("case_name", document.getElementById("case-name")?.value || "Untitled Case");
             formData.append("destination", isSplunk ? "splunk" : "elasticsearch");
@@ -315,15 +319,44 @@
             const xhr = new XMLHttpRequest();
             xhr.open("POST", "/upload");
 
+            let pollInterval = null;
+
             xhr.upload.addEventListener("progress", (event) => {
                 if (event.lengthComputable) {
                     const pct = Math.round((event.loaded / event.total) * 100);
-                    progressBar.style.width = pct + "%";
-                    document.getElementById("progress-text").textContent = `${pct}% uploaded`;
+                    // Leave room for the backend parsing phase
+                    const visualPct = Math.round(pct * 0.2); 
+                    progressBar.style.width = visualPct + "%";
+                    document.getElementById("progress-text").textContent = `${pct}% uploaded (network)...`;
+
+                    if (pct === 100 && !pollInterval) {
+                        // Network complete, start polling backend progress
+                        pollInterval = setInterval(async () => {
+                            try {
+                                const resp = await fetch(`/progress/${clientId}`);
+                                const data = await resp.json();
+                                if (data.status === "parsing" && data.total > 0) {
+                                    const parsedPct = (data.completed / data.total) * 100;
+                                    // Map parsing from 20% to 90%
+                                    const combinedPct = 20 + Math.round(parsedPct * 0.7);
+                                    progressBar.style.width = combinedPct + "%";
+                                    document.getElementById("progress-text").textContent = `parsing & forwarding ${data.completed} / ${data.total} EVTX files...`;
+                                } else if (data.status === "chainsaw") {
+                                    progressBar.style.width = "95%";
+                                    document.getElementById("progress-text").textContent = "running Chainsaw threat intelligence...";
+                                } else if (data.status === "complete") {
+                                    progressBar.style.width = "100%";
+                                    document.getElementById("progress-text").textContent = "processing complete!";
+                                    clearInterval(pollInterval);
+                                }
+                            } catch (e) { console.warn("poll failed", e); }
+                        }, 1000);
+                    }
                 }
             });
 
             const resetBtn = () => {
+                if (pollInterval) clearInterval(pollInterval);
                 uploadBtn.disabled = false;
                 uploadBtn.textContent = "⚡ FORWARD EVENTS";
             };

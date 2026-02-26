@@ -15,7 +15,7 @@ def run_chainsaw(evtx_dir: str) -> dict:
             "--json",
             "--skip-errors"
         ]
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
         
         if result.returncode != 0:
             logger.warning(f"Chainsaw exited with code {result.returncode}: {result.stderr[:500]}")
