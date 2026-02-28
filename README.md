@@ -96,22 +96,13 @@ Simply configure your MCP client to execute:
 ```json
 {
   "mcpServers": {
-    "evtxorcist": {
-      "command": "docker",
-      "args": [
-        "run", "-i", "--rm",
-        "--network", "evtxorcist_default",
-        "-e", "SPLUNK_HOST=splunk",
-        "-e", "SPLUNK_PORT=8089",
-        "-e", "SPLUNK_USERNAME=admin",
-        "-e", "SPLUNK_PASSWORD=EvtxAdmin123!",
-        "-e", "VERIFY_SSL=false",
-        "-v", "/absolute/path/to/EVTXorcist/splunk_config/splunk_mcp.py:/app/splunk_mcp.py:ro",
-        "evtxorcist-splunk-mcp",
-        "python3", "/app/splunk_mcp.py", "stdio"
-      ]
+    "multivol": {
+            "serverUrl": "http://127.0.0.1:8080/mcp",
+            "headers": {
+                "Authorization": "Bearer my-super-secret-token"
+            }
+        }
     }
-  }
 }
 ```
 
