@@ -18,9 +18,6 @@ RUN git clone https://github.com/livehybrid/splunk-mcp.git /app
 # First freeze dependencies to allow modification
 RUN uv pip compile pyproject.toml -o requirements.txt
 
-# Modify the frozen requirements to downgrade fastmcp to 0.4.1 (known compatible version for description kwarg before API change)
-RUN sed -i 's/fastmcp==.*/fastmcp==0.4.1/' requirements.txt
-
 # Install the dependencies from the modified requirements
 RUN uv pip install --system -r requirements.txt
 

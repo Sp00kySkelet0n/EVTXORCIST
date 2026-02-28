@@ -1,7 +1,7 @@
 services:
   evtx-uploader:
     build: .
-    ports: 
+    ports:
       - 8000:8000
     volumes:
       - ./app:/app
@@ -25,7 +25,7 @@ services:
       - ./splunk_config/evtxorcist_app:/opt/splunk/etc/apps/evtxorcist_app
 
   splunk-mcp:
-    build: 
+    build:
       context: .
       dockerfile: splunk_mcp_custom.Dockerfile
     container_name: splunk-mcp
@@ -35,11 +35,10 @@ services:
       - SPLUNK_USERNAME=admin
       - SPLUNK_PASSWORD=EvtxAdmin123!
       - VERIFY_SSL=false
-      - SERVER_MODE=sse
+      - MCP_TOKEN=evtxorcist_secret_token
     ports:
       - "8080:8000" # Mapped to 8080 because evtxorcist uses 8000
     depends_on:
       - splunk
     volumes:
       - ./splunk_config/splunk_mcp.py:/app/splunk_mcp.py:ro
-

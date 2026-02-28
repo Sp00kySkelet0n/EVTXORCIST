@@ -9,17 +9,11 @@ from typing import Dict, List, Any, Optional, Union
 
 import splunklib.client
 from decouple import config
-from mcp.server.fastmcp import FastMCP
+from fastmcp import FastMCP
+from fastmcp.server.auth.auth import TokenVerifier, AccessToken
 from splunklib import results
 import sys
 import socket
-from fastapi import FastAPI, APIRouter, Request
-from fastapi.openapi.docs import get_swagger_ui_html, get_redoc_html
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import JSONResponse
-from mcp.server.sse import SseServerTransport
-from starlette.routing import Mount
-import uvicorn
 
 # Configure logging
 logging.basicConfig(
@@ -35,253 +29,25 @@ logger = logging.getLogger(__name__)
 # Environment variables
 FASTMCP_PORT = int(os.environ.get("FASTMCP_PORT", "8000"))
 os.environ["FASTMCP_PORT"] = str(FASTMCP_PORT)
+MCP_TOKEN = os.environ.get("MCP_TOKEN", "evtxorcist_secret_token")
 
-# Create FastAPI application with metadata
-app = FastAPI(
-    title="Splunk MCP API",
-    description="A FastMCP-based tool for interacting with Splunk Enterprise/Cloud through natural language",
-    version="0.3.0",
-)
+class StaticTokenAuth(TokenVerifier):
+    async def verify_token(self, token: str) -> AccessToken | None:
+        if token == MCP_TOKEN:
+            return AccessToken(
+                token=token,
+                client_id="MCP",
+                scopes=[],
+                expires_at=None,
+                resource="http://127.0.0.1:8000/mcp"
+            )
+        return None
 
 # Initialize the MCP server
 mcp = FastMCP(
     "splunk",
-    dependencies=["splunk-sdk", "requests"],
+    auth=StaticTokenAuth()
 )
-
-# Create SSE transport instance for handling server-sent events
-sse = SseServerTransport("/messages/")
-
-# Mount the /messages path to handle SSE message posting
-app.router.routes.append(Mount("/messages", app=sse.handle_post_message))
-
-# Add documentation for the /messages endpoint
-@app.get("/messages", tags=["MCP"], include_in_schema=True)
-def messages_docs():
-    """
-    Messages endpoint for SSE communication
-
-    This endpoint is used for posting messages to SSE clients.
-    Note: This route is for documentation purposes only.
-    The actual implementation is handled by the SSE transport.
-    """
-    pass
-
-@app.get("/sse", tags=["MCP"])
-async def handle_sse(request: Request):
-    """
-    SSE endpoint that connects to the MCP server
-
-    This endpoint establishes a Server-Sent Events connection with the client
-    and forwards communication to the Model Context Protocol server.
-    """
-    # Use sse.connect_sse to establish an SSE connection with the MCP server
-    async with sse.connect_sse(request.scope, request.receive, request._send) as (
-        read_stream,
-        write_stream,
-    ):
-        # Run the MCP server with the established streams
-        await mcp._mcp_server.run(
-            read_stream,
-            write_stream,
-            mcp._mcp_server.create_initialization_options(),
-        )
-
-@app.get("/docs", include_in_schema=False)
-async def custom_swagger_ui_html():
-    return get_swagger_ui_html(
-        openapi_url="/openapi.json",
-        title=f"{mcp.name} - Swagger UI"
-    )
-
-@app.get("/redoc", include_in_schema=False)
-async def redoc_html():
-    return get_redoc_html(
-        openapi_url="/openapi.json",
-        title=f"{mcp.name} - ReDoc"
-    )
-
-@app.get("/openapi.json", include_in_schema=False)
-async def get_openapi_schema():
-    """Generate OpenAPI schema that documents MCP tools as operations"""
-    # Get the OpenAPI schema from MCP tools
-    tools = await list_tools()
-    
-    # Define the tool request/response schemas
-    tool_schemas = {
-        "ToolRequest": {
-            "type": "object",
-            "required": ["tool", "parameters"],
-            "properties": {
-                "tool": {
-                    "type": "string",
-                    "description": "The name of the tool to execute"
-                },
-                "parameters": {
-                    "type": "object",
-                    "description": "Parameters for the tool execution"
-                }
-            }
-        },
-        "ToolResponse": {
-            "type": "object",
-            "properties": {
-                "result": {
-                    "type": "object",
-                    "description": "The result of the tool execution"
-                },
-                "error": {
-                    "type": "string",
-                    "description": "Error message if the execution failed"
-                }
-            }
-        }
-    }
-    
-    # Convert MCP tools to OpenAPI operations
-    tool_operations = {}
-    for tool in tools:
-        tool_name = tool["name"]
-        tool_desc = tool["description"]
-        tool_params = tool.get("parameters", {}).get("properties", {})
-        
-        # Create parameter schema for this specific tool
-        param_schema = {
-            "type": "object",
-            "required": tool.get("parameters", {}).get("required", []),
-            "properties": {}
-        }
-        
-        # Add each parameter's properties
-        for param_name, param_info in tool_params.items():
-            param_schema["properties"][param_name] = {
-                "type": param_info.get("type", "string"),
-                "description": param_info.get("description", ""),
-                "default": param_info.get("default", None)
-            }
-        
-        # Add operation for this tool
-        operation_id = f"execute_{tool_name}"
-        tool_operations[operation_id] = {
-            "summary": tool_desc.split("\n")[0] if tool_desc else tool_name,
-            "description": tool_desc,
-            "tags": ["MCP Tools"],
-            "requestBody": {
-                "required": True,
-                "content": {
-                    "application/json": {
-                        "schema": {
-                            "type": "object",
-                            "required": ["parameters"],
-                            "properties": {
-                                "parameters": param_schema
-                            }
-                        }
-                    }
-                }
-            },
-            "responses": {
-                "200": {
-                    "description": "Successful tool execution",
-                    "content": {
-                        "application/json": {
-                            "schema": {"$ref": "#/components/schemas/ToolResponse"}
-                        }
-                    }
-                },
-                "400": {
-                    "description": "Invalid parameters",
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "error": {"type": "string"}
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    
-    # Build OpenAPI schema
-    openapi_schema = {
-        "openapi": "3.0.2",
-        "info": {
-            "title": "Splunk MCP API",
-            "description": "A FastMCP-based tool for interacting with Splunk Enterprise/Cloud through natural language",
-            "version": VERSION
-        },
-        "paths": {
-            "/sse": {
-                "get": {
-                    "summary": "SSE Connection",
-                    "description": "Establishes a Server-Sent Events connection for real-time communication",
-                    "tags": ["MCP Core"],
-                    "responses": {
-                        "200": {
-                            "description": "SSE connection established"
-                        }
-                    }
-                }
-            },
-            "/messages": {
-                "get": {
-                    "summary": "Messages Endpoint",
-                    "description": "Endpoint for SSE message communication",
-                    "tags": ["MCP Core"],
-                    "responses": {
-                        "200": {
-                            "description": "Message endpoint ready"
-                        }
-                    }
-                }
-            },
-            "/execute": {
-                "post": {
-                    "summary": "Execute MCP Tool",
-                    "description": "Execute any available MCP tool with the specified parameters",
-                    "tags": ["MCP Tools"],
-                    "requestBody": {
-                        "required": True,
-                        "content": {
-                            "application/json": {
-                                "schema": {"$ref": "#/components/schemas/ToolRequest"}
-                            }
-                        }
-                    },
-                    "responses": {
-                        "200": {
-                            "description": "Tool executed successfully",
-                            "content": {
-                                "application/json": {
-                                    "schema": {"$ref": "#/components/schemas/ToolResponse"}
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "components": {
-            "schemas": {
-                **tool_schemas,
-                **{f"{tool['name']}Parameters": {
-                    "type": "object",
-                    "properties": tool.get("parameters", {}).get("properties", {}),
-                    "required": tool.get("parameters", {}).get("required", [])
-                } for tool in tools}
-            }
-        },
-        "tags": [
-            {"name": "MCP Core", "description": "Core MCP server endpoints"},
-            {"name": "MCP Tools", "description": "Available MCP tools and operations"}
-        ],
-        "x-mcp-tools": tool_operations
-    }
-    
-    return JSONResponse(content=openapi_schema)
 
 # Global variables
 VERSION = "0.3.0"
@@ -897,10 +663,10 @@ if __name__ == "__main__":
     import sys
     
     # Get the mode from command line arguments
-    mode = sys.argv[1] if len(sys.argv) > 1 else "sse"
+    mode = sys.argv[1] if len(sys.argv) > 1 else "http"
     
-    if mode not in ["stdio", "sse"]:
-        logger.error(f"❌ Invalid mode: {mode}. Must be one of: stdio, sse")
+    if mode not in ["stdio", "http", "sse"]:
+        logger.error(f"❌ Invalid mode: {mode}. Must be one of: stdio, http, sse")
         sys.exit(1)
     
     # Set logger level to debug if DEBUG environment variable is set
@@ -912,8 +678,6 @@ if __name__ == "__main__":
     logger.info(f"🚀 Starting Splunk MCP server in {mode.upper()} mode")
     
     if mode == "stdio":
-        # Run in stdio mode
         mcp.run(transport=mode)
     else:
-        # Run in SSE mode with documentation
-        uvicorn.run(app, host="0.0.0.0", port=FASTMCP_PORT) 
+        mcp.run(transport="http", host="0.0.0.0", port=FASTMCP_PORT) 

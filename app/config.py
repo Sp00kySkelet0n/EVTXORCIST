@@ -10,3 +10,4 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 OLLAMA_HOST = "http://host.docker.internal:11434"
 OLLAMA_BASE = OLLAMA_HOST
 MCP_SSE_URL = "http://splunk-mcp:8000/sse"
+MCP_TOKEN = os.environ.get("MCP_TOKEN", "evtxorcist_secret_token")

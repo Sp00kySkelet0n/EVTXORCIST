@@ -2,7 +2,7 @@ import asyncio
 import logging
 from mcp import ClientSession
 from mcp.client.sse import sse_client
-from config import MCP_SSE_URL
+from config import MCP_SSE_URL, MCP_TOKEN
 
 logger = logging.getLogger("evtx_uploader")
 
@@ -16,7 +16,7 @@ def _get_mcp_tools_sync() -> list[dict]:
     async def _inner():
         nonlocal tools_result
         try:
-            async with sse_client(MCP_SSE_URL) as (read, write):
+            async with sse_client(MCP_SSE_URL, headers={"Authorization": f"Bearer {MCP_TOKEN}"}) as (read, write):
                 async with ClientSession(read, write) as session:
                     await session.initialize()
                     response = await session.list_tools()
@@ -51,7 +51,7 @@ def _call_mcp_tool_sync(tool_name: str, tool_args: dict) -> str:
     async def _inner():
         nonlocal result_text
         try:
-            async with sse_client(MCP_SSE_URL) as (read, write):
+            async with sse_client(MCP_SSE_URL, headers={"Authorization": f"Bearer {MCP_TOKEN}"}) as (read, write):
                 async with ClientSession(read, write) as session:
                     await session.initialize()
                     result = await session.call_tool(tool_name, arguments=tool_args)
